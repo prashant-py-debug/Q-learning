@@ -4,10 +4,11 @@ from tensorflow import keras
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import load_model
 
+#Replay memory to store the experience
 class ReplayBuffer():
     def __init__(self, max_size, input_dims):
-        self.mem_size = max_size
-        self.mem_cntr = 0
+        self.mem_size = max_size 
+        self.mem_cntr = 0 #memory counter
 
         self.state_memory = np.zeros((self.mem_size, *input_dims), 
                                     dtype=np.float32)
@@ -79,24 +80,22 @@ class Agent():
         if self.memory.mem_cntr < self.batch_size:
             return
 
-        states, actions, rewards, states_, dones = \
-                self.memory.sample_buffer(self.batch_size)
+        states, actions, rewards, states_, dones = self.memory.sample_buffer(self.batch_size)  
 
-        q_eval = self.q_eval.predict(states)
-        q_next = self.q_eval.predict(states_)
+        q_eval = self.q_eval.predict(states)    #current Q values
+        q_next = self.q_eval.predict(states_)   #future Q values
 
 
         q_target = np.copy(q_eval)
-        batch_index = np.arange(self.batch_size, dtype=np.int32)
+        batch_index = np.arange(self.batch_size, dtype=np.int32) 
 
-        q_target[batch_index, actions] = rewards + \
-                        self.gamma * np.max(q_next, axis=1)*dones
+        q_target[batch_index, actions] = rewards + self.gamma * np.max(q_next, axis=1)*dones    #target Q values (Bellman equation)
 
 
         self.q_eval.train_on_batch(states, q_target)
 
-        self.epsilon = self.epsilon - self.eps_dec if self.epsilon > \
-                self.eps_min else self.eps_min
+        #epsilon decay for Exploitation and Exploration
+        self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_min else self.eps_min
 
     def save_model(self):
         self.q_eval.save(self.model_file)
